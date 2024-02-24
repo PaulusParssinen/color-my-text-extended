@@ -1,10 +1,11 @@
 # Change Log
 
-All notable changes to the "color-my-text" extension will be documented in this file.
-
-Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
+All notable changes to the "color-my-text-extended" extension will be documented in this file.
 
 ## [Unreleased]
+
+- Allow full manual decoration of the matches
+- Allow decoration by capture group
 
 ## [1.8.0] - 2023-05-08
 

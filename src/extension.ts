@@ -1,163 +1,273 @@
-import * as vscode from 'vscode';
-import * as minimatch from 'minimatch';
-import { IOptions } from 'glob';
+import { minimatch } from "minimatch";
+import * as vscode from "vscode";
 
 export function activate(context: vscode.ExtensionContext): void {
-	console.log('Extension "color-my-text" is activated.');
+  console.log('Extension "color-my-text-extended" is activated.');
 
-	type Configuration = {
-		paths?: string[],
-		rules?: Rule[],
-	};
+  type Configuration = {
+    paths?: string[];
+    rules?: Rule[];
+  };
 
-	type Rule = {
-		patterns?: string[];
-		color?: Color;
-		matchCase?: boolean;
-		matchWholeWord?: boolean;
-		bold?: boolean;
-		italic?: boolean;
-		underline?: boolean;
-		strikeThrough?: boolean;
-	};
+  type DecorationOptions = {
+    groups?: (string | number)[];
+  } & vscode.DecorationRenderOptions;
 
-	enum Color {
-		black = 'Black',
-		blue = 'Blue',
-		brightBlack = 'BrightBlack',
-		brightBlue = 'BrightBlue',
-		brightCyan = 'BrightCyan',
-		brightGreen = 'BrightGreen',
-		brightMagenta = 'BrightMagenta',
-		brightRed = 'BrightRed',
-		brightWhite = 'BrightWhite',
-		brightYellow = 'BrightYellow',
-		cyan = 'Cyan',
-		green = 'Green',
-		magenta = 'Magenta',
-		red = 'Red',
-		white = 'White',
-		yellow = 'Yellow',
-	}
+  type Rule = {
+    patterns?: string[] | string;
+    decorations?: DecorationOptions[];
+    matchCase?: boolean;
+  };
 
-	let todoEditors: vscode.TextEditor[];
-	let doneEditors: vscode.TextEditor[];
-	let allDecorationTypes: vscode.TextEditorDecorationType[][] = [];
+  let todoEditors: vscode.TextEditor[];
+  let doneEditors: vscode.TextEditor[];
 
-	function resetDecorations(): void {
-		todoEditors = vscode.window.visibleTextEditors.slice();
-		doneEditors = [];
+  // Cached regexes
+  const regexes = new Map<string, RegExp>();
 
-		// Clear all decorations.
-		todoEditors.forEach(todoEditor =>
-			allDecorationTypes.flat().forEach(decorationType =>
-				todoEditor.setDecorations(decorationType, [])));
+  // Maps rule pattern -> (decoration capture group -> decoration type).
+  let allPatternDecorations: Map<
+    string,
+    Map<string | number, vscode.TextEditorDecorationType>
+  > = new Map();
 
-		// Refresh decoration-type map.
-		const configurations = vscode.workspace.getConfiguration('colorMyText').get<Configuration[]>('configurations');
-		allDecorationTypes = !Array.isArray(configurations)
-			? []
-			: configurations.map(configuration => !Array.isArray(configuration.rules)
-				? []
-				: configuration.rules.map(rule => vscode.window.createTextEditorDecorationType({
-					color: !Object.values(Color).includes(rule.color!) ? undefined : new vscode.ThemeColor('terminal.ansi' + rule.color),
-					fontWeight: typeof rule.bold !== 'boolean' ? undefined : rule.bold ? 'bold' : 'normal',
-					fontStyle: typeof rule.italic !== 'boolean' ? undefined : rule.italic ? 'italic' : 'normal',
-					textDecoration:
-						rule.underline === true && rule.strikeThrough === true ? 'underline line-through'
-						: rule.underline === true ? 'underline'
-						: rule.strikeThrough === true ? 'line-through'
-						: rule.underline === false || rule.strikeThrough === false ? 'none'
-						: undefined,
-				})));
-	}
+  const createRegex = (pattern: string, matchCase?: boolean) => {
+    if (typeof pattern !== "string") return;
 
-	function updateDecorations(): void {
-		if (allDecorationTypes.flat().length === 0) { return; }
-		if (todoEditors.length === 0) { return; }
+    try {
+      return new RegExp(pattern, matchCase ? "dgu" : "dgiu");
+    } catch (e) {
+      return;
+    }
+  };
 
-		const configurations = vscode.workspace.getConfiguration('colorMyText').get<Configuration[]>('configurations');
-		if (!Array.isArray(configurations)) { return; }
+  const getConfiguration = () => {
+    return vscode.workspace
+      .getConfiguration("colorMyTextExtended")
+      .get<Configuration[]>("configurations");
+  };
 
-		todoEditors.forEach(todoEditor => {
-			const applicableConfigurations = configurations.filter(configuration =>
-				Array.isArray(configuration.paths) && configuration.paths.some(path => {
-					if (typeof path !== 'string') { return false; }
+  const resetDecorations = () => {
+    todoEditors = vscode.window.visibleTextEditors.slice();
+    doneEditors = [];
 
-					// Support matches by filenames and relative file paths.
-					const pattern = path.includes('/') || path.includes('\\') ? path : '**/' + path;
-					const options: IOptions = { nocase: process.platform === 'win32' };
-					return minimatch(vscode.workspace.asRelativePath(todoEditor.document.fileName), pattern, options);
-				}));
+    // Clear all decorations.
+    todoEditors.forEach((todoEditor) =>
+      allPatternDecorations.forEach((decorationGroup) =>
+        decorationGroup.forEach((decorationType) =>
+          todoEditor.setDecorations(decorationType, [])
+        )
+      )
+    );
 
-			if (applicableConfigurations.length === 0) { return; }
+    // Refresh decoration-type map.
+    const configurations = getConfiguration();
+    if (!Array.isArray(configurations)) return;
 
-			applicableConfigurations.forEach(configuration =>
-				Array.isArray(configuration.rules) && configuration.rules?.forEach(rule => {
-					const ranges: vscode.Range[] = [];
+    // Rebuild the decoration map
+    allPatternDecorations = new Map();
+    configurations.map((configuration) => {
+      if (!Array.isArray(configuration.rules)) return [];
 
-					Array.isArray(rule.patterns) && rule.patterns.forEach(pattern => {
-						if (typeof pattern !== 'string') { return; }
+      const createDecorationGroups = (
+        pattern: string,
+        decorations: DecorationOptions[]
+      ) => {
+        if (!allPatternDecorations.has(pattern)) {
+          allPatternDecorations.set(pattern, new Map());
+        }
 
-						let regExp: RegExp;
-						try {
-							regExp = new RegExp(pattern, rule.matchCase === true ? 'gu' : 'giu');
-						} catch (e) {
-							return; // Skip invalid regular expression patterns.
-						}
+        decorations.forEach((decoration) => {
+          const decorationType =
+            vscode.window.createTextEditorDecorationType(decoration);
 
-						for (let line = 0; line < todoEditor.document.lineCount; line++) {
-							for (const match of todoEditor.document.lineAt(line).text.matchAll(regExp)) {
-								if (match.index === undefined || match[0].length === 0) { continue; }
-								ranges.push(new vscode.Range(line, match.index, line, match.index + match[0].length));
-							}
-						}
-					});
+          // If no groups are specified, default to capture group at index 0, which matches everything.
+          const decorationGroups =
+            decoration.groups === undefined ? [0] : decoration.groups;
 
-					// We used to have rule-to-decoration-type map for selecting the decoration-type based on the
-					// rule, but if the extension is installed from the package, it was found that the object
-					// representing the same rule changes as user switches between documents, so the rule-object
-					// could not be used as the key for the map.
-					const decorationType = allDecorationTypes[configurations.indexOf(configuration)][configuration.rules!.indexOf(rule)];
-					todoEditor.setDecorations(decorationType, ranges);
-				}));
+          decorationGroups.forEach((group) => {
+            allPatternDecorations.get(pattern)!.set(group, decorationType);
+          });
+        });
+      };
 
-			doneEditors.push(todoEditor);
-		});
+      configuration.rules.forEach((rule) => {
+        if (rule.patterns === undefined || rule.decorations === undefined)
+          return;
 
-		todoEditors = [];
-	}
+        const patterns = Array.isArray(rule.patterns)
+          ? rule.patterns
+          : [rule.patterns];
 
-	vscode.workspace.onDidChangeConfiguration(
-		event => {
-			if (event.affectsConfiguration('colorMyText.configurations')) {
-				resetDecorations();
-			}
-		},
-		null,
-		context.subscriptions);
+        patterns.forEach((pattern) => {
+          if (typeof pattern !== "string") return;
 
-	vscode.window.onDidChangeVisibleTextEditors(
-		visibleEditors => {
-			todoEditors = visibleEditors.filter(visibleEditor => !doneEditors.includes(visibleEditor));
-			doneEditors = doneEditors.filter(doneEditor => visibleEditors.includes(doneEditor));
-		},
-		null,
-		context.subscriptions);
+          if (!regexes.has(pattern)) {
+            regexes.set(pattern, createRegex(pattern, rule.matchCase)!);
+          }
 
-	vscode.workspace.onDidChangeTextDocument(
-		event => {
-			vscode.window.visibleTextEditors.forEach(visibleEditor => {
-				if (visibleEditor.document === event.document && !todoEditors.includes(visibleEditor)) {
-					todoEditors.push(visibleEditor);
-				}
-			});
+          createDecorationGroups(pattern, rule.decorations!);
+        });
+      });
+      console.log(allPatternDecorations);
+    });
+  };
 
-			doneEditors = doneEditors.filter(doneEditor => !todoEditors.includes(doneEditor));
-		},
-		null,
-		context.subscriptions);
+  function updateDecorations(): void {
+    if (allPatternDecorations.size === 0) return;
+    if (todoEditors.length === 0) return;
 
-	resetDecorations();
-	setInterval(updateDecorations, 500);
+    const configurations = getConfiguration();
+    if (!Array.isArray(configurations)) return;
+
+    todoEditors.forEach((todoEditor) => {
+      const applicableConfigurations = configurations.filter(
+        (configuration) =>
+          Array.isArray(configuration.paths) &&
+          configuration.paths.some((path) => {
+            if (typeof path !== "string") {
+              return false;
+            }
+
+            // Support matches by filenames and relative file paths.
+            const pattern =
+              path.includes("/") || path.includes("\\") ? path : "**/" + path;
+            return minimatch(
+              vscode.workspace.asRelativePath(todoEditor.document.fileName),
+              pattern
+            );
+          })
+      );
+
+      if (applicableConfigurations.length === 0) return;
+
+      applicableConfigurations.forEach((configuration) => {
+        const decorationRanges: Map<
+          vscode.TextEditorDecorationType,
+          vscode.Range[]
+        > = new Map();
+
+        const matchAndAddDecorationRange = (
+          lineNumber: number,
+          line: string,
+          pattern: RegExp,
+          decorationGroups: Map<
+            string | number,
+            vscode.TextEditorDecorationType
+          >
+        ) => {
+          for (const match of line.matchAll(pattern)) {
+            if (
+              match.index === undefined ||
+              match.indices === undefined ||
+              match[0].length === 0
+            ) {
+              continue;
+            }
+
+            for (const group of decorationGroups.keys()) {
+              const range =
+                typeof group === "number"
+                  ? match.indices[group]
+                  : match.indices.groups![group];
+
+              if (range === undefined) continue;
+
+              const decorationRange = new vscode.Range(
+                lineNumber,
+                range[0],
+                lineNumber,
+                range[1]
+              );
+
+              const decorationType = decorationGroups.get(group)!;
+              if (decorationRanges.has(decorationType)) {
+                decorationRanges.get(decorationType)!.push(decorationRange);
+              } else {
+                decorationRanges.set(decorationType, [decorationRange]);
+              }
+            }
+          }
+        };
+
+        for (
+          let lineNumber = 0;
+          lineNumber < todoEditor.document.lineCount;
+          lineNumber++
+        ) {
+          const lineText = todoEditor.document.lineAt(lineNumber).text;
+
+          for (const pattern of allPatternDecorations.keys()) {
+            const decorationGroups = allPatternDecorations.get(pattern);
+            const patternRegex = regexes.get(pattern);
+
+            if (patternRegex === undefined || decorationGroups === undefined)
+              continue;
+
+            matchAndAddDecorationRange(
+              lineNumber,
+              lineText,
+              patternRegex,
+              decorationGroups
+            );
+          }
+        }
+
+        if (decorationRanges.size === 0) return;
+
+        decorationRanges.forEach((ranges, decorationType) => {
+          todoEditor.setDecorations(decorationType, ranges);
+        });
+      });
+
+      doneEditors.push(todoEditor);
+    });
+
+    todoEditors = [];
+  }
+
+  vscode.workspace.onDidChangeConfiguration(
+    (event) => {
+      if (event.affectsConfiguration("colorMyTextExtended.configurations")) {
+        resetDecorations();
+      }
+    },
+    null,
+    context.subscriptions
+  );
+
+  vscode.window.onDidChangeVisibleTextEditors(
+    (visibleEditors) => {
+      todoEditors = visibleEditors.filter(
+        (visibleEditor) => !doneEditors.includes(visibleEditor)
+      );
+      doneEditors = doneEditors.filter((doneEditor) =>
+        visibleEditors.includes(doneEditor)
+      );
+    },
+    null,
+    context.subscriptions
+  );
+
+  vscode.workspace.onDidChangeTextDocument(
+    (event) => {
+      vscode.window.visibleTextEditors.forEach((visibleEditor) => {
+        if (
+          visibleEditor.document === event.document &&
+          !todoEditors.includes(visibleEditor)
+        ) {
+          todoEditors.push(visibleEditor);
+        }
+      });
+
+      doneEditors = doneEditors.filter(
+        (doneEditor) => !todoEditors.includes(doneEditor)
+      );
+    },
+    null,
+    context.subscriptions
+  );
+
+  resetDecorations();
+  setInterval(updateDecorations, 500);
 }

@@ -1,12 +1,12 @@
 {
-  "name": "color-my-text",
-  "version": "1.8.0",
-  "publisher": "JatinSanghvi",
+  "name": "color-my-text-extended",
+  "version": "1.9.0",
+  "publisher": "PaulusParssinen",
   "engines": {
-    "vscode": "^1.67.0"
+    "vscode": "^1.86.0"
   },
   "license": "MIT",
-  "displayName": "Color My Text",
+  "displayName": "Color My Text Extended",
   "description": "Create color and style schemes quickly for your files with custom formats.",
   "categories": [
     "Other"
@@ -23,9 +23,9 @@
   "main": "./out/extension.js",
   "contributes": {
     "configuration": {
-      "title": "Color My Text",
+      "title": "Color My Text Extended",
       "properties": {
-        "colorMyText.configurations": {
+        "colorMyTextExtended.configurations": {
           "description": "Specifies the color and style configuration.",
           "type": "array",
           "items": {
@@ -47,84 +47,968 @@
                   "additionalProperties": false,
                   "properties": {
                     "patterns": {
-                      "markdownDescription": "Specifies the list of regular expressions for matching the text e.g. `[\"Critical .*\", \"Error .*\"]`.",
+                      "anyOf": [
+                        {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "format": "regex"
+                          }
+                        },
+                        {
+                          "type": "string",
+                          "format": "regex"
+                        }
+                      ],
+                      "markdownDescription": "Specifies a single or list of regular expressions for matching the text e.g. `\"Critical .*\"` or `[\"Critical .*\", \"Error .*\"]`."
+                    },
+                    "decorations": {
+                      "description": "Specifies the decoration options for the match groups.",
                       "type": "array",
                       "items": {
-                        "type": "string"
+                        "additionalProperties": false,
+                        "description": "Represents decoration options styles for a matching capture group.",
+                        "properties": {
+                          "groups": {
+                            "description": "Specifies the list of capture group indexes to apply the decoration to.",
+                            "type": "array",
+                            "items": {
+                              "oneOf": [
+                                {
+                                  "type": "number",
+                                  "description": "Specifies the index of the capture group to apply the decoration to."
+                                },
+                                {
+                                  "type": "string",
+                                  "description": "Specifies the name of the capture group to apply the decoration to."
+                                }
+                              ]
+                            }
+                          },
+                          "after": {
+                            "additionalProperties": false,
+                            "description": "Defines the rendering options of the attachment that is inserted after the decorated text.",
+                            "properties": {
+                              "backgroundColor": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "additionalProperties": false,
+                                    "description": "A reference to one of the workbench colors as defined in https://code.visualstudio.com/docs/getstarted/theme-color-reference. Using a theme color is preferred over a custom color as it gives theme authors and users the possibility to change the color.",
+                                    "type": "object"
+                                  }
+                                ],
+                                "description": "CSS styling property that will be applied to the decoration attachment."
+                              },
+                              "border": {
+                                "description": "CSS styling property that will be applied to the decoration attachment.",
+                                "type": "string"
+                              },
+                              "borderColor": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "additionalProperties": false,
+                                    "description": "A reference to one of the workbench colors as defined in https://code.visualstudio.com/docs/getstarted/theme-color-reference. Using a theme color is preferred over a custom color as it gives theme authors and users the possibility to change the color.",
+                                    "type": "object"
+                                  }
+                                ],
+                                "description": "CSS styling property that will be applied to text enclosed by a decoration."
+                              },
+                              "color": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "additionalProperties": false,
+                                    "description": "A reference to one of the workbench colors as defined in https://code.visualstudio.com/docs/getstarted/theme-color-reference. Using a theme color is preferred over a custom color as it gives theme authors and users the possibility to change the color.",
+                                    "type": "object"
+                                  }
+                                ],
+                                "description": "CSS styling property that will be applied to the decoration attachment."
+                              },
+                              "contentIconPath": {
+                                "type": "string",
+                                "description": "An **absolute path** or an URI to an image to be rendered in the attachment. Either an icon or a text can be shown, but not both."
+                              },
+                              "contentText": {
+                                "description": "Defines a text content that is shown in the attachment. Either an icon or a text can be shown, but not both.",
+                                "type": "string"
+                              },
+                              "fontStyle": {
+                                "description": "CSS styling property that will be applied to the decoration attachment.",
+                                "type": "string"
+                              },
+                              "fontWeight": {
+                                "description": "CSS styling property that will be applied to the decoration attachment.",
+                                "type": "string"
+                              },
+                              "height": {
+                                "description": "CSS styling property that will be applied to the decoration attachment.",
+                                "type": "string"
+                              },
+                              "margin": {
+                                "description": "CSS styling property that will be applied to the decoration attachment.",
+                                "type": "string"
+                              },
+                              "textDecoration": {
+                                "description": "CSS styling property that will be applied to the decoration attachment.",
+                                "type": "string"
+                              },
+                              "width": {
+                                "description": "CSS styling property that will be applied to the decoration attachment.",
+                                "type": "string"
+                              }
+                            },
+                            "type": "object"
+                          },
+                          "backgroundColor": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "additionalProperties": false,
+                                "description": "A reference to one of the workbench colors as defined in https://code.visualstudio.com/docs/getstarted/theme-color-reference. Using a theme color is preferred over a custom color as it gives theme authors and users the possibility to change the color.",
+                                "type": "object"
+                              }
+                            ],
+                            "description": "Background color of the decoration. Use rgba() and define transparent background colors to play well with other decorations. Alternatively a color from the color registry can be  {@link  ThemeColor referenced } ."
+                          },
+                          "before": {
+                            "additionalProperties": false,
+                            "description": "Defines the rendering options of the attachment that is inserted before the decorated text.",
+                            "properties": {
+                              "backgroundColor": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "additionalProperties": false,
+                                    "description": "A reference to one of the workbench colors as defined in https://code.visualstudio.com/docs/getstarted/theme-color-reference. Using a theme color is preferred over a custom color as it gives theme authors and users the possibility to change the color.",
+                                    "type": "object"
+                                  }
+                                ],
+                                "description": "CSS styling property that will be applied to the decoration attachment."
+                              },
+                              "border": {
+                                "description": "CSS styling property that will be applied to the decoration attachment.",
+                                "type": "string"
+                              },
+                              "borderColor": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "additionalProperties": false,
+                                    "description": "A reference to one of the workbench colors as defined in https://code.visualstudio.com/docs/getstarted/theme-color-reference. Using a theme color is preferred over a custom color as it gives theme authors and users the possibility to change the color.",
+                                    "type": "object"
+                                  }
+                                ],
+                                "description": "CSS styling property that will be applied to text enclosed by a decoration."
+                              },
+                              "color": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "additionalProperties": false,
+                                    "description": "A reference to one of the workbench colors as defined in https://code.visualstudio.com/docs/getstarted/theme-color-reference. Using a theme color is preferred over a custom color as it gives theme authors and users the possibility to change the color.",
+                                    "type": "object"
+                                  }
+                                ],
+                                "description": "CSS styling property that will be applied to the decoration attachment."
+                              },
+                              "contentIconPath": {
+                                "type": "string",
+                                "description": "An **absolute path** or an URI to an image to be rendered in the attachment. Either an icon or a text can be shown, but not both."
+                              },
+                              "contentText": {
+                                "description": "Defines a text content that is shown in the attachment. Either an icon or a text can be shown, but not both.",
+                                "type": "string"
+                              },
+                              "fontStyle": {
+                                "description": "CSS styling property that will be applied to the decoration attachment.",
+                                "type": "string"
+                              },
+                              "fontWeight": {
+                                "description": "CSS styling property that will be applied to the decoration attachment.",
+                                "type": "string"
+                              },
+                              "height": {
+                                "description": "CSS styling property that will be applied to the decoration attachment.",
+                                "type": "string"
+                              },
+                              "margin": {
+                                "description": "CSS styling property that will be applied to the decoration attachment.",
+                                "type": "string"
+                              },
+                              "textDecoration": {
+                                "description": "CSS styling property that will be applied to the decoration attachment.",
+                                "type": "string"
+                              },
+                              "width": {
+                                "description": "CSS styling property that will be applied to the decoration attachment.",
+                                "type": "string"
+                              }
+                            },
+                            "type": "object"
+                          },
+                          "border": {
+                            "description": "CSS styling property that will be applied to text enclosed by a decoration.",
+                            "type": "string"
+                          },
+                          "borderColor": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "additionalProperties": false,
+                                "description": "A reference to one of the workbench colors as defined in https://code.visualstudio.com/docs/getstarted/theme-color-reference. Using a theme color is preferred over a custom color as it gives theme authors and users the possibility to change the color.",
+                                "type": "object"
+                              }
+                            ],
+                            "description": "CSS styling property that will be applied to text enclosed by a decoration. Better use 'border' for setting one or more of the individual border properties."
+                          },
+                          "borderRadius": {
+                            "description": "CSS styling property that will be applied to text enclosed by a decoration. Better use 'border' for setting one or more of the individual border properties.",
+                            "type": "string"
+                          },
+                          "borderSpacing": {
+                            "description": "CSS styling property that will be applied to text enclosed by a decoration. Better use 'border' for setting one or more of the individual border properties.",
+                            "type": "string"
+                          },
+                          "borderStyle": {
+                            "description": "CSS styling property that will be applied to text enclosed by a decoration. Better use 'border' for setting one or more of the individual border properties.",
+                            "type": "string"
+                          },
+                          "borderWidth": {
+                            "description": "CSS styling property that will be applied to text enclosed by a decoration. Better use 'border' for setting one or more of the individual border properties.",
+                            "type": "string"
+                          },
+                          "color": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "additionalProperties": false,
+                                "description": "A reference to one of the workbench colors as defined in https://code.visualstudio.com/docs/getstarted/theme-color-reference. Using a theme color is preferred over a custom color as it gives theme authors and users the possibility to change the color.",
+                                "type": "object"
+                              }
+                            ],
+                            "description": "CSS styling property that will be applied to text enclosed by a decoration."
+                          },
+                          "cursor": {
+                            "description": "CSS styling property that will be applied to text enclosed by a decoration.",
+                            "type": "string"
+                          },
+                          "dark": {
+                            "additionalProperties": false,
+                            "description": "Overwrite options for dark themes.",
+                            "properties": {
+                              "after": {
+                                "additionalProperties": false,
+                                "description": "Defines the rendering options of the attachment that is inserted after the decorated text.",
+                                "properties": {
+                                  "backgroundColor": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "additionalProperties": false,
+                                        "description": "A reference to one of the workbench colors as defined in https://code.visualstudio.com/docs/getstarted/theme-color-reference. Using a theme color is preferred over a custom color as it gives theme authors and users the possibility to change the color.",
+                                        "type": "object"
+                                      }
+                                    ],
+                                    "description": "CSS styling property that will be applied to the decoration attachment."
+                                  },
+                                  "border": {
+                                    "description": "CSS styling property that will be applied to the decoration attachment.",
+                                    "type": "string"
+                                  },
+                                  "borderColor": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "additionalProperties": false,
+                                        "description": "A reference to one of the workbench colors as defined in https://code.visualstudio.com/docs/getstarted/theme-color-reference. Using a theme color is preferred over a custom color as it gives theme authors and users the possibility to change the color.",
+                                        "type": "object"
+                                      }
+                                    ],
+                                    "description": "CSS styling property that will be applied to text enclosed by a decoration."
+                                  },
+                                  "color": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "additionalProperties": false,
+                                        "description": "A reference to one of the workbench colors as defined in https://code.visualstudio.com/docs/getstarted/theme-color-reference. Using a theme color is preferred over a custom color as it gives theme authors and users the possibility to change the color.",
+                                        "type": "object"
+                                      }
+                                    ],
+                                    "description": "CSS styling property that will be applied to the decoration attachment."
+                                  },
+                                  "contentIconPath": {
+                                    "type": "string",
+                                    "description": "An **absolute path** or an URI to an image to be rendered in the attachment. Either an icon or a text can be shown, but not both."
+                                  },
+                                  "contentText": {
+                                    "description": "Defines a text content that is shown in the attachment. Either an icon or a text can be shown, but not both.",
+                                    "type": "string"
+                                  },
+                                  "fontStyle": {
+                                    "description": "CSS styling property that will be applied to the decoration attachment.",
+                                    "type": "string"
+                                  },
+                                  "fontWeight": {
+                                    "description": "CSS styling property that will be applied to the decoration attachment.",
+                                    "type": "string"
+                                  },
+                                  "height": {
+                                    "description": "CSS styling property that will be applied to the decoration attachment.",
+                                    "type": "string"
+                                  },
+                                  "margin": {
+                                    "description": "CSS styling property that will be applied to the decoration attachment.",
+                                    "type": "string"
+                                  },
+                                  "textDecoration": {
+                                    "description": "CSS styling property that will be applied to the decoration attachment.",
+                                    "type": "string"
+                                  },
+                                  "width": {
+                                    "description": "CSS styling property that will be applied to the decoration attachment.",
+                                    "type": "string"
+                                  }
+                                },
+                                "type": "object"
+                              },
+                              "backgroundColor": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "additionalProperties": false,
+                                    "description": "A reference to one of the workbench colors as defined in https://code.visualstudio.com/docs/getstarted/theme-color-reference. Using a theme color is preferred over a custom color as it gives theme authors and users the possibility to change the color.",
+                                    "type": "object"
+                                  }
+                                ],
+                                "description": "Background color of the decoration. Use rgba() and define transparent background colors to play well with other decorations. Alternatively a color from the color registry can be  {@link  ThemeColor referenced } ."
+                              },
+                              "before": {
+                                "additionalProperties": false,
+                                "description": "Defines the rendering options of the attachment that is inserted before the decorated text.",
+                                "properties": {
+                                  "backgroundColor": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "additionalProperties": false,
+                                        "description": "A reference to one of the workbench colors as defined in https://code.visualstudio.com/docs/getstarted/theme-color-reference. Using a theme color is preferred over a custom color as it gives theme authors and users the possibility to change the color.",
+                                        "type": "object"
+                                      }
+                                    ],
+                                    "description": "CSS styling property that will be applied to the decoration attachment."
+                                  },
+                                  "border": {
+                                    "description": "CSS styling property that will be applied to the decoration attachment.",
+                                    "type": "string"
+                                  },
+                                  "borderColor": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "additionalProperties": false,
+                                        "description": "A reference to one of the workbench colors as defined in https://code.visualstudio.com/docs/getstarted/theme-color-reference. Using a theme color is preferred over a custom color as it gives theme authors and users the possibility to change the color.",
+                                        "type": "object"
+                                      }
+                                    ],
+                                    "description": "CSS styling property that will be applied to text enclosed by a decoration."
+                                  },
+                                  "color": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "additionalProperties": false,
+                                        "description": "A reference to one of the workbench colors as defined in https://code.visualstudio.com/docs/getstarted/theme-color-reference. Using a theme color is preferred over a custom color as it gives theme authors and users the possibility to change the color.",
+                                        "type": "object"
+                                      }
+                                    ],
+                                    "description": "CSS styling property that will be applied to the decoration attachment."
+                                  },
+                                  "contentIconPath": {
+                                    "type": "string",
+                                    "description": "An **absolute path** or an URI to an image to be rendered in the attachment. Either an icon or a text can be shown, but not both."
+                                  },
+                                  "contentText": {
+                                    "description": "Defines a text content that is shown in the attachment. Either an icon or a text can be shown, but not both.",
+                                    "type": "string"
+                                  },
+                                  "fontStyle": {
+                                    "description": "CSS styling property that will be applied to the decoration attachment.",
+                                    "type": "string"
+                                  },
+                                  "fontWeight": {
+                                    "description": "CSS styling property that will be applied to the decoration attachment.",
+                                    "type": "string"
+                                  },
+                                  "height": {
+                                    "description": "CSS styling property that will be applied to the decoration attachment.",
+                                    "type": "string"
+                                  },
+                                  "margin": {
+                                    "description": "CSS styling property that will be applied to the decoration attachment.",
+                                    "type": "string"
+                                  },
+                                  "textDecoration": {
+                                    "description": "CSS styling property that will be applied to the decoration attachment.",
+                                    "type": "string"
+                                  },
+                                  "width": {
+                                    "description": "CSS styling property that will be applied to the decoration attachment.",
+                                    "type": "string"
+                                  }
+                                },
+                                "type": "object"
+                              },
+                              "border": {
+                                "description": "CSS styling property that will be applied to text enclosed by a decoration.",
+                                "type": "string"
+                              },
+                              "borderColor": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "additionalProperties": false,
+                                    "description": "A reference to one of the workbench colors as defined in https://code.visualstudio.com/docs/getstarted/theme-color-reference. Using a theme color is preferred over a custom color as it gives theme authors and users the possibility to change the color.",
+                                    "type": "object"
+                                  }
+                                ],
+                                "description": "CSS styling property that will be applied to text enclosed by a decoration. Better use 'border' for setting one or more of the individual border properties."
+                              },
+                              "borderRadius": {
+                                "description": "CSS styling property that will be applied to text enclosed by a decoration. Better use 'border' for setting one or more of the individual border properties.",
+                                "type": "string"
+                              },
+                              "borderSpacing": {
+                                "description": "CSS styling property that will be applied to text enclosed by a decoration. Better use 'border' for setting one or more of the individual border properties.",
+                                "type": "string"
+                              },
+                              "borderStyle": {
+                                "description": "CSS styling property that will be applied to text enclosed by a decoration. Better use 'border' for setting one or more of the individual border properties.",
+                                "type": "string"
+                              },
+                              "borderWidth": {
+                                "description": "CSS styling property that will be applied to text enclosed by a decoration. Better use 'border' for setting one or more of the individual border properties.",
+                                "type": "string"
+                              },
+                              "color": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "additionalProperties": false,
+                                    "description": "A reference to one of the workbench colors as defined in https://code.visualstudio.com/docs/getstarted/theme-color-reference. Using a theme color is preferred over a custom color as it gives theme authors and users the possibility to change the color.",
+                                    "type": "object"
+                                  }
+                                ],
+                                "description": "CSS styling property that will be applied to text enclosed by a decoration."
+                              },
+                              "cursor": {
+                                "description": "CSS styling property that will be applied to text enclosed by a decoration.",
+                                "type": "string"
+                              },
+                              "fontStyle": {
+                                "description": "CSS styling property that will be applied to text enclosed by a decoration.",
+                                "type": "string"
+                              },
+                              "fontWeight": {
+                                "description": "CSS styling property that will be applied to text enclosed by a decoration.",
+                                "type": "string"
+                              },
+                              "gutterIconPath": {
+                                "type": "string",
+                                "description": "An **absolute path** or an URI to an image to be rendered in the gutter."
+                              },
+                              "gutterIconSize": {
+                                "description": "Specifies the size of the gutter icon. Available values are 'auto', 'contain', 'cover' and any percentage value. For further information: https://msdn.microsoft.com/en-us/library/jj127316(v=vs.85).aspx",
+                                "type": "string"
+                              },
+                              "letterSpacing": {
+                                "description": "CSS styling property that will be applied to text enclosed by a decoration.",
+                                "type": "string"
+                              },
+                              "opacity": {
+                                "description": "CSS styling property that will be applied to text enclosed by a decoration.",
+                                "type": "string"
+                              },
+                              "outline": {
+                                "description": "CSS styling property that will be applied to text enclosed by a decoration.",
+                                "type": "string"
+                              },
+                              "outlineColor": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "additionalProperties": false,
+                                    "description": "A reference to one of the workbench colors as defined in https://code.visualstudio.com/docs/getstarted/theme-color-reference. Using a theme color is preferred over a custom color as it gives theme authors and users the possibility to change the color.",
+                                    "type": "object"
+                                  }
+                                ],
+                                "description": "CSS styling property that will be applied to text enclosed by a decoration. Better use 'outline' for setting one or more of the individual outline properties."
+                              },
+                              "outlineStyle": {
+                                "description": "CSS styling property that will be applied to text enclosed by a decoration. Better use 'outline' for setting one or more of the individual outline properties.",
+                                "type": "string"
+                              },
+                              "outlineWidth": {
+                                "description": "CSS styling property that will be applied to text enclosed by a decoration. Better use 'outline' for setting one or more of the individual outline properties.",
+                                "type": "string"
+                              },
+                              "overviewRulerColor": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "additionalProperties": false,
+                                    "description": "A reference to one of the workbench colors as defined in https://code.visualstudio.com/docs/getstarted/theme-color-reference. Using a theme color is preferred over a custom color as it gives theme authors and users the possibility to change the color.",
+                                    "type": "object"
+                                  }
+                                ],
+                                "description": "The color of the decoration in the overview ruler. Use rgba() and define transparent colors to play well with other decorations."
+                              },
+                              "textDecoration": {
+                                "description": "CSS styling property that will be applied to text enclosed by a decoration.",
+                                "type": "string"
+                              }
+                            },
+                            "type": "object"
+                          },
+                          "fontStyle": {
+                            "description": "CSS styling property that will be applied to text enclosed by a decoration.",
+                            "type": "string"
+                          },
+                          "fontWeight": {
+                            "description": "CSS styling property that will be applied to text enclosed by a decoration.",
+                            "type": "string"
+                          },
+                          "gutterIconPath": {
+                            "type": "string",
+                            "description": "An **absolute path** or an URI to an image to be rendered in the gutter."
+                          },
+                          "gutterIconSize": {
+                            "description": "Specifies the size of the gutter icon. Available values are 'auto', 'contain', 'cover' and any percentage value. For further information: https://msdn.microsoft.com/en-us/library/jj127316(v=vs.85).aspx",
+                            "type": "string"
+                          },
+                          "isWholeLine": {
+                            "description": "Should the decoration be rendered also on the whitespace after the line text. Defaults to `false`.",
+                            "type": "boolean"
+                          },
+                          "letterSpacing": {
+                            "description": "CSS styling property that will be applied to text enclosed by a decoration.",
+                            "type": "string"
+                          },
+                          "light": {
+                            "additionalProperties": false,
+                            "description": "Overwrite options for light themes.",
+                            "properties": {
+                              "after": {
+                                "additionalProperties": false,
+                                "description": "Defines the rendering options of the attachment that is inserted after the decorated text.",
+                                "properties": {
+                                  "backgroundColor": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "additionalProperties": false,
+                                        "description": "A reference to one of the workbench colors as defined in https://code.visualstudio.com/docs/getstarted/theme-color-reference. Using a theme color is preferred over a custom color as it gives theme authors and users the possibility to change the color.",
+                                        "type": "object"
+                                      }
+                                    ],
+                                    "description": "CSS styling property that will be applied to the decoration attachment."
+                                  },
+                                  "border": {
+                                    "description": "CSS styling property that will be applied to the decoration attachment.",
+                                    "type": "string"
+                                  },
+                                  "borderColor": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "additionalProperties": false,
+                                        "description": "A reference to one of the workbench colors as defined in https://code.visualstudio.com/docs/getstarted/theme-color-reference. Using a theme color is preferred over a custom color as it gives theme authors and users the possibility to change the color.",
+                                        "type": "object"
+                                      }
+                                    ],
+                                    "description": "CSS styling property that will be applied to text enclosed by a decoration."
+                                  },
+                                  "color": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "additionalProperties": false,
+                                        "description": "A reference to one of the workbench colors as defined in https://code.visualstudio.com/docs/getstarted/theme-color-reference. Using a theme color is preferred over a custom color as it gives theme authors and users the possibility to change the color.",
+                                        "type": "object"
+                                      }
+                                    ],
+                                    "description": "CSS styling property that will be applied to the decoration attachment."
+                                  },
+                                  "contentIconPath": {
+                                    "type": "string",
+                                    "description": "An **absolute path** or an URI to an image to be rendered in the attachment. Either an icon or a text can be shown, but not both."
+                                  },
+                                  "contentText": {
+                                    "description": "Defines a text content that is shown in the attachment. Either an icon or a text can be shown, but not both.",
+                                    "type": "string"
+                                  },
+                                  "fontStyle": {
+                                    "description": "CSS styling property that will be applied to the decoration attachment.",
+                                    "type": "string"
+                                  },
+                                  "fontWeight": {
+                                    "description": "CSS styling property that will be applied to the decoration attachment.",
+                                    "type": "string"
+                                  },
+                                  "height": {
+                                    "description": "CSS styling property that will be applied to the decoration attachment.",
+                                    "type": "string"
+                                  },
+                                  "margin": {
+                                    "description": "CSS styling property that will be applied to the decoration attachment.",
+                                    "type": "string"
+                                  },
+                                  "textDecoration": {
+                                    "description": "CSS styling property that will be applied to the decoration attachment.",
+                                    "type": "string"
+                                  },
+                                  "width": {
+                                    "description": "CSS styling property that will be applied to the decoration attachment.",
+                                    "type": "string"
+                                  }
+                                },
+                                "type": "object"
+                              },
+                              "backgroundColor": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "additionalProperties": false,
+                                    "description": "A reference to one of the workbench colors as defined in https://code.visualstudio.com/docs/getstarted/theme-color-reference. Using a theme color is preferred over a custom color as it gives theme authors and users the possibility to change the color.",
+                                    "type": "object"
+                                  }
+                                ],
+                                "description": "Background color of the decoration. Use rgba() and define transparent background colors to play well with other decorations. Alternatively a color from the color registry can be  {@link  ThemeColor referenced } ."
+                              },
+                              "before": {
+                                "additionalProperties": false,
+                                "description": "Defines the rendering options of the attachment that is inserted before the decorated text.",
+                                "properties": {
+                                  "backgroundColor": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "additionalProperties": false,
+                                        "description": "A reference to one of the workbench colors as defined in https://code.visualstudio.com/docs/getstarted/theme-color-reference. Using a theme color is preferred over a custom color as it gives theme authors and users the possibility to change the color.",
+                                        "type": "object"
+                                      }
+                                    ],
+                                    "description": "CSS styling property that will be applied to the decoration attachment."
+                                  },
+                                  "border": {
+                                    "description": "CSS styling property that will be applied to the decoration attachment.",
+                                    "type": "string"
+                                  },
+                                  "borderColor": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "additionalProperties": false,
+                                        "description": "A reference to one of the workbench colors as defined in https://code.visualstudio.com/docs/getstarted/theme-color-reference. Using a theme color is preferred over a custom color as it gives theme authors and users the possibility to change the color.",
+                                        "type": "object"
+                                      }
+                                    ],
+                                    "description": "CSS styling property that will be applied to text enclosed by a decoration."
+                                  },
+                                  "color": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "additionalProperties": false,
+                                        "description": "A reference to one of the workbench colors as defined in https://code.visualstudio.com/docs/getstarted/theme-color-reference. Using a theme color is preferred over a custom color as it gives theme authors and users the possibility to change the color.",
+                                        "type": "object"
+                                      }
+                                    ],
+                                    "description": "CSS styling property that will be applied to the decoration attachment."
+                                  },
+                                  "contentIconPath": {
+                                    "type": "string",
+                                    "description": "An **absolute path** or an URI to an image to be rendered in the attachment. Either an icon or a text can be shown, but not both."
+                                  },
+                                  "contentText": {
+                                    "description": "Defines a text content that is shown in the attachment. Either an icon or a text can be shown, but not both.",
+                                    "type": "string"
+                                  },
+                                  "fontStyle": {
+                                    "description": "CSS styling property that will be applied to the decoration attachment.",
+                                    "type": "string"
+                                  },
+                                  "fontWeight": {
+                                    "description": "CSS styling property that will be applied to the decoration attachment.",
+                                    "type": "string"
+                                  },
+                                  "height": {
+                                    "description": "CSS styling property that will be applied to the decoration attachment.",
+                                    "type": "string"
+                                  },
+                                  "margin": {
+                                    "description": "CSS styling property that will be applied to the decoration attachment.",
+                                    "type": "string"
+                                  },
+                                  "textDecoration": {
+                                    "description": "CSS styling property that will be applied to the decoration attachment.",
+                                    "type": "string"
+                                  },
+                                  "width": {
+                                    "description": "CSS styling property that will be applied to the decoration attachment.",
+                                    "type": "string"
+                                  }
+                                },
+                                "type": "object"
+                              },
+                              "border": {
+                                "description": "CSS styling property that will be applied to text enclosed by a decoration.",
+                                "type": "string"
+                              },
+                              "borderColor": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "additionalProperties": false,
+                                    "description": "A reference to one of the workbench colors as defined in https://code.visualstudio.com/docs/getstarted/theme-color-reference. Using a theme color is preferred over a custom color as it gives theme authors and users the possibility to change the color.",
+                                    "type": "object"
+                                  }
+                                ],
+                                "description": "CSS styling property that will be applied to text enclosed by a decoration. Better use 'border' for setting one or more of the individual border properties."
+                              },
+                              "borderRadius": {
+                                "description": "CSS styling property that will be applied to text enclosed by a decoration. Better use 'border' for setting one or more of the individual border properties.",
+                                "type": "string"
+                              },
+                              "borderSpacing": {
+                                "description": "CSS styling property that will be applied to text enclosed by a decoration. Better use 'border' for setting one or more of the individual border properties.",
+                                "type": "string"
+                              },
+                              "borderStyle": {
+                                "description": "CSS styling property that will be applied to text enclosed by a decoration. Better use 'border' for setting one or more of the individual border properties.",
+                                "type": "string"
+                              },
+                              "borderWidth": {
+                                "description": "CSS styling property that will be applied to text enclosed by a decoration. Better use 'border' for setting one or more of the individual border properties.",
+                                "type": "string"
+                              },
+                              "color": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "additionalProperties": false,
+                                    "description": "A reference to one of the workbench colors as defined in https://code.visualstudio.com/docs/getstarted/theme-color-reference. Using a theme color is preferred over a custom color as it gives theme authors and users the possibility to change the color.",
+                                    "type": "object"
+                                  }
+                                ],
+                                "description": "CSS styling property that will be applied to text enclosed by a decoration."
+                              },
+                              "cursor": {
+                                "description": "CSS styling property that will be applied to text enclosed by a decoration.",
+                                "type": "string"
+                              },
+                              "fontStyle": {
+                                "description": "CSS styling property that will be applied to text enclosed by a decoration.",
+                                "type": "string"
+                              },
+                              "fontWeight": {
+                                "description": "CSS styling property that will be applied to text enclosed by a decoration.",
+                                "type": "string"
+                              },
+                              "gutterIconPath": {
+                                "type": "string",
+                                "description": "An **absolute path** or an URI to an image to be rendered in the gutter."
+                              },
+                              "gutterIconSize": {
+                                "description": "Specifies the size of the gutter icon. Available values are 'auto', 'contain', 'cover' and any percentage value. For further information: https://msdn.microsoft.com/en-us/library/jj127316(v=vs.85).aspx",
+                                "type": "string"
+                              },
+                              "letterSpacing": {
+                                "description": "CSS styling property that will be applied to text enclosed by a decoration.",
+                                "type": "string"
+                              },
+                              "opacity": {
+                                "description": "CSS styling property that will be applied to text enclosed by a decoration.",
+                                "type": "string"
+                              },
+                              "outline": {
+                                "description": "CSS styling property that will be applied to text enclosed by a decoration.",
+                                "type": "string"
+                              },
+                              "outlineColor": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "additionalProperties": false,
+                                    "description": "A reference to one of the workbench colors as defined in https://code.visualstudio.com/docs/getstarted/theme-color-reference. Using a theme color is preferred over a custom color as it gives theme authors and users the possibility to change the color.",
+                                    "type": "object"
+                                  }
+                                ],
+                                "description": "CSS styling property that will be applied to text enclosed by a decoration. Better use 'outline' for setting one or more of the individual outline properties."
+                              },
+                              "outlineStyle": {
+                                "description": "CSS styling property that will be applied to text enclosed by a decoration. Better use 'outline' for setting one or more of the individual outline properties.",
+                                "type": "string"
+                              },
+                              "outlineWidth": {
+                                "description": "CSS styling property that will be applied to text enclosed by a decoration. Better use 'outline' for setting one or more of the individual outline properties.",
+                                "type": "string"
+                              },
+                              "overviewRulerColor": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "additionalProperties": false,
+                                    "description": "A reference to one of the workbench colors as defined in https://code.visualstudio.com/docs/getstarted/theme-color-reference. Using a theme color is preferred over a custom color as it gives theme authors and users the possibility to change the color.",
+                                    "type": "object"
+                                  }
+                                ],
+                                "description": "The color of the decoration in the overview ruler. Use rgba() and define transparent colors to play well with other decorations."
+                              },
+                              "textDecoration": {
+                                "description": "CSS styling property that will be applied to text enclosed by a decoration.",
+                                "type": "string"
+                              }
+                            },
+                            "type": "object"
+                          },
+                          "opacity": {
+                            "description": "CSS styling property that will be applied to text enclosed by a decoration.",
+                            "type": "string"
+                          },
+                          "outline": {
+                            "description": "CSS styling property that will be applied to text enclosed by a decoration.",
+                            "type": "string"
+                          },
+                          "outlineColor": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "additionalProperties": false,
+                                "description": "A reference to one of the workbench colors as defined in https://code.visualstudio.com/docs/getstarted/theme-color-reference. Using a theme color is preferred over a custom color as it gives theme authors and users the possibility to change the color.",
+                                "type": "object"
+                              }
+                            ],
+                            "description": "CSS styling property that will be applied to text enclosed by a decoration. Better use 'outline' for setting one or more of the individual outline properties."
+                          },
+                          "outlineStyle": {
+                            "description": "CSS styling property that will be applied to text enclosed by a decoration. Better use 'outline' for setting one or more of the individual outline properties.",
+                            "type": "string"
+                          },
+                          "outlineWidth": {
+                            "description": "CSS styling property that will be applied to text enclosed by a decoration. Better use 'outline' for setting one or more of the individual outline properties.",
+                            "type": "string"
+                          },
+                          "overviewRulerColor": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "additionalProperties": false,
+                                "description": "A reference to one of the workbench colors as defined in https://code.visualstudio.com/docs/getstarted/theme-color-reference. Using a theme color is preferred over a custom color as it gives theme authors and users the possibility to change the color.",
+                                "type": "object"
+                              }
+                            ],
+                            "description": "The color of the decoration in the overview ruler. Use rgba() and define transparent colors to play well with other decorations."
+                          },
+                          "overviewRulerLane": {
+                            "description": "The position in the overview ruler where the decoration should be rendered.",
+                            "enum": [
+                              1,
+                              2,
+                              4,
+                              7
+                            ],
+                            "type": "number"
+                          },
+                          "rangeBehavior": {
+                            "description": "Customize the growing behavior of the decoration when edits occur at the edges of the decoration's range. Defaults to `DecorationRangeBehavior.OpenOpen`.",
+                            "enum": [
+                              0,
+                              1,
+                              2,
+                              3
+                            ],
+                            "type": "number"
+                          },
+                          "textDecoration": {
+                            "description": "CSS styling property that will be applied to text enclosed by a decoration.",
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
                       }
-                    },
-                    "matchCase": {
-                      "description": "Specifies whether to perform case-sensitive match.",
-                      "type": "boolean"
-                    },
-                    "color": {
-                      "markdownDescription": "Specifies the terminal ANSI color. _Do not specify to retain original text color._",
-                      "type": "string",
-                      "enum": [
-                        "Black",
-                        "Blue",
-                        "BrightBlack",
-                        "BrightBlue",
-                        "BrightCyan",
-                        "BrightGreen",
-                        "BrightMagenta",
-                        "BrightRed",
-                        "BrightWhite",
-                        "BrightYellow",
-                        "Cyan",
-                        "Green",
-                        "Magenta",
-                        "Red",
-                        "White",
-                        "Yellow"
-                      ]
-                    },
-                    "bold": {
-                      "markdownDescription": "Specifies whether to **bold** or unbold text. _Do not specify to retain original font weights._",
-                      "type": "boolean"
-                    },
-                    "italic": {
-                      "markdownDescription": "Specifies whether to _italicize_ or unitalicize text. _Do not specify to retain original font style._",
-                      "type": "boolean"
-                    },
-                    "underline": {
-                      "markdownDescription": "Specifies whether to add or remove underline from text. _Do not specify to retain original text decoration._",
-                      "type": "boolean"
-                    },
-                    "strikeThrough": {
-                      "markdownDescription": "Specifies whether to add or remove ~~strike through~~ from text. _Do not specify to retain original text decoration._",
-                      "type": "boolean"
                     }
                   },
                   "required": [
                     "patterns"
-                  ],
-                  "anyOf": [
-                    {
-                      "required": [
-                        "color"
-                      ]
-                    },
-                    {
-                      "required": [
-                        "bold"
-                      ]
-                    },
-                    {
-                      "required": [
-                        "italic"
-                      ]
-                    },
-                    {
-                      "required": [
-                        "underline"
-                      ]
-                    },
-                    {
-                      "required": [
-                        "strikeThrough"
-                      ]
-                    }
                   ],
                   "title": "Setting"
                 }
@@ -143,32 +1027,22 @@
     "*"
   ],
   "dependencies": {
-    "glob": "^8.1.0",
-    "minimatch": "^5.0.1"
+    "glob": "^10.3.10",
+    "minimatch": "^9.0.3"
   },
   "devDependencies": {
-    "@types/glob": "^8.1.0",
-    "@types/mocha": "^10.0.1",
-    "@types/node": "^18.16.3",
-    "@types/vscode": "^1.67.0",
-    "@typescript-eslint/eslint-plugin": "^5.59.2",
-    "@typescript-eslint/parser": "^5.59.2",
+    "@types/node": "^20.11.20",
+    "@types/vscode": "^1.86.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.2",
+    "@typescript-eslint/parser": "^7.0.2",
     "@vscode/test-electron": "^2.3.0",
     "eslint": "^8.39.0",
-    "mocha": "^10.2.0",
-    "typescript": "^5.0.4"
+    "typescript": "^5.3.3"
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "pretest": "npm run compile && npm run lint",
-    "lint": "eslint src --ext ts",
-    "test": "node ./out/test/runTest.js"
-  },
-  "icon": "images/icon.png",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/JatinSanghvi/color-my-text-vscode.git"
+    "lint": "eslint src --ext ts"
   }
 }
