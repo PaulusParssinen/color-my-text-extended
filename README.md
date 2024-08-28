@@ -1,9 +1,12 @@
-# Color My Text
+# Color My Text Extended
 
-Customized fork of [Color My Text](https://github.com/JatinSanghvi/color-my-text-vscode) for my own needs.
+A fork of [Color My Text](https://github.com/JatinSanghvi/color-my-text-vscode) to extend it for my own needs.
 
-## Edits
+## Changes
 
 - Remove color limitations and allow full customization of the matches
 - Allow matching by regex groups
-- Optimize it a bit
+
+## Build
+
+`npm run build`

@@ -1,7 +1,63 @@
 {
   "colorMyTextExtended.configurations": [
     {
-      "paths": ["fiftytwos.txt"],
+      "paths": ["*.txt"],
+      "rules": [
+        {
+          "patterns": ["^(?<prefix>.{2})(?<preamble>.{4})"],
+          "decorations": [
+            {
+              "groups": ["preamble"],
+              "description": "This a preamble",
+              "after": {
+                "contentText": " "
+              }
+            },
+            {
+              "groups": "prefix",
+              "after": {
+                "contentText": " "
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "paths": ["**/*.txt"],
+      "rules": [
+        {
+          "patterns": ["no hits"],
+          "decorations": [
+            {
+              "textDecoration": "underline"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "paths": ["50.txt"],
+      "rules": [
+        {
+          "exhaustive": true,
+          "patterns": [
+            "^.{6,}(?<quad>(\\w)\\2\\2\\2)",
+            "^.{6,}(?<triplet>(\\w)\\2\\2)",
+            "^.{6,}(?<doublet>(\\w)\\2)"
+          ],
+          "decorations": [
+            {
+              "groups": ["quad", "triplet", "doublet"],
+              "color": "orange",
+              "textDecoration": "2px underline"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "paths": ["52.txt"],
       "rules": [
         {
           "patterns": [
@@ -22,11 +78,20 @@
           ]
         },
         {
-          "patterns": ["^.{2}"],
+          "patterns": ["^.{20,22}(?<first>.).{4}(?<second>\\k<first>)"],
           "decorations": [
             {
-              "fontStyle": "italic",
-              "color": "lightblue"
+              "groups": ["first", "second"],
+              "color": "red"
+            }
+          ]
+        },
+        {
+          "patterns": ["^.{30,32}(?<first>.).{10}(?<second>\\k<first>)"],
+          "decorations": [
+            {
+              "groups": ["first", "second"],
+              "color": "yellow"
             }
           ]
         }

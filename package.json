@@ -1,6 +1,6 @@
 {
   "name": "color-my-text-extended",
-  "version": "1.9.0",
+  "version": "1.9.1",
   "publisher": "PaulusParssinen",
   "engines": {
     "vscode": "^1.86.0"
@@ -12,15 +12,17 @@
     "Other"
   ],
   "keywords": [
-    "bold",
     "color",
     "decorate",
-    "italic",
-    "style",
     "text",
-    "underline"
+    "underline",
+    "regex",
+    "highlight"
   ],
   "main": "./out/extension.js",
+  "repository": {
+    "url": "https://github.com/PaulusParssinen/color-my-text-extended"
+  },
   "contributes": {
     "configuration": {
       "title": "Color My Text Extended",
@@ -31,6 +33,10 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
+            "required": [
+              "paths",
+              "rules"
+            ],
             "properties": {
               "paths": {
                 "markdownDescription": "Specifies the list of file path patterns e.g. `[\"*.log\", \"todos/**/*.todo\"]`.",
@@ -45,8 +51,13 @@
                 "items": {
                   "type": "object",
                   "additionalProperties": false,
+                  "required": [
+                    "patterns"
+                  ],
+                  "title": "Setting",
                   "properties": {
                     "patterns": {
+                      "markdownDescription": "Specifies a single or list of regular expressions for matching the text e.g. `\"Critical .*\"` or `[\"Critical .*\", \"Error .*\"]`.",
                       "anyOf": [
                         {
                           "type": "array",
@@ -59,8 +70,11 @@
                           "type": "string",
                           "format": "regex"
                         }
-                      ],
-                      "markdownDescription": "Specifies a single or list of regular expressions for matching the text e.g. `\"Critical .*\"` or `[\"Critical .*\", \"Error .*\"]`."
+                      ]
+                    },
+                    "exhaustive": {
+                      "type": "boolean",
+                      "description": "Specifies whether to exhaustively look for all matches in the text."
                     },
                     "decorations": {
                       "description": "Specifies the decoration options for the match groups.",
@@ -68,22 +82,39 @@
                       "items": {
                         "additionalProperties": false,
                         "description": "Represents decoration options styles for a matching capture group.",
+                        "type": "object",
                         "properties": {
+                          "description": {
+                            "type": "string",
+                            "description": "Description to be shown when hovered over thet match."
+                          },
                           "groups": {
                             "description": "Specifies the list of capture group indexes to apply the decoration to.",
-                            "type": "array",
-                            "items": {
-                              "oneOf": [
-                                {
-                                  "type": "number",
-                                  "description": "Specifies the index of the capture group to apply the decoration to."
-                                },
-                                {
-                                  "type": "string",
-                                  "description": "Specifies the name of the capture group to apply the decoration to."
+                            "oneOf": [
+                              {
+                                "type": "array",
+                                "items": {
+                                  "oneOf": [
+                                    {
+                                      "type": "number",
+                                      "description": "Specifies the index of the capture group to apply the decoration to."
+                                    },
+                                    {
+                                      "type": "string",
+                                      "description": "Specifies the name of the capture group to apply the decoration to."
+                                    }
+                                  ]
                                 }
-                              ]
-                            }
+                              },
+                              {
+                                "type": "number",
+                                "description": "Specifies the index of the capture group to apply the decoration to."
+                              },
+                              {
+                                "type": "string",
+                                "description": "Specifies the name of the capture group to apply the decoration to."
+                              }
+                            ]
                           },
                           "after": {
                             "additionalProperties": false,
@@ -1002,22 +1033,13 @@
                             "description": "CSS styling property that will be applied to text enclosed by a decoration.",
                             "type": "string"
                           }
-                        },
-                        "type": "object"
+                        }
                       }
                     }
-                  },
-                  "required": [
-                    "patterns"
-                  ],
-                  "title": "Setting"
+                  }
                 }
               }
-            },
-            "required": [
-              "paths",
-              "rules"
-            ]
+            }
           }
         }
       }
@@ -1040,6 +1062,7 @@
     "typescript": "^5.3.3"
   },
   "scripts": {
+    "build": "vsce package --allow-star-activation",
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
