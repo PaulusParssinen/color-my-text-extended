@@ -73,13 +73,13 @@ const decoratedGroupHoverProvider = (
     if (token.isCancellationRequested) return;
     if (!range.contains(position)) continue;
 
-    const hoverLines = [
-      `Group: \`${group}\``,
-      decoration.description && `Description: ${decoration.description}`,
-    ];
+    const hoverLines = [`Group: \`${group}\``];
+
+    if (decoration.description)
+      hoverLines.push(`Description: ${decoration.description}`);
 
     return new vscode.Hover(
-      hoverLines.filter(Boolean).map((line) => new vscode.MarkdownString(line)),
+      hoverLines.map((line) => new vscode.MarkdownString(line)),
       range
     );
   }
@@ -168,11 +168,12 @@ function updateDecorations(): void {
           ) {
             const lineText = document.lineAt(lineNumber).text;
 
-            let index = lineText.length;
+            // For the exhaustive search, we track the last capture group offset.
+            let unexamined = lineText.length;
             do {
-              index = tryMatchAndAddDecorationRange(
+              unexamined = tryMatchAndAddDecorationRange(
                 document,
-                lineText.slice(0, index),
+                lineText.slice(0, unexamined),
                 patternRegex,
                 decorationGroups,
                 decorationOptionGroups,
@@ -180,7 +181,7 @@ function updateDecorations(): void {
                 decorationRanges,
                 lineNumber
               );
-            } while (index > 0);
+            } while (unexamined > 0);
           }
         }
       }
@@ -204,7 +205,14 @@ const tryMatchAndAddDecorationRange = (
   decorationRanges: Map<vscode.TextEditorDecorationType, vscode.Range[]>,
   lineNumber?: number
 ): number => {
-  let minimumMatchIndex = -1;
+  // We use the fact whether the lineNumber is supplied to the function
+  // to determine if we are doing exhaustive search.
+  const isExhaustive = lineNumber !== undefined;
+
+  // For the exhaustive search, we will track the offset of the last matched capture group.
+  // We slice the input text to the last matched capture group to avoid matching the same text again.
+  let maxGroupOffset = -1; // sentinel value for no matches.
+
   for (const match of input.matchAll(pattern)) {
     if (match.index === undefined || !match.indices || match[0].length === 0) {
       continue;
@@ -221,11 +229,10 @@ const tryMatchAndAddDecorationRange = (
       const start = range[0];
       const end = range[1];
 
-      // todo: think about this again
-      if (minimumMatchIndex === -1) minimumMatchIndex = start;
-      else minimumMatchIndex = Math.min(minimumMatchIndex, end);
+      // Track the maximum starting offset of the capture groups.
+      maxGroupOffset = Math.max(maxGroupOffset, start);
 
-      const decorationRange = lineNumber
+      const decorationRange = isExhaustive
         ? new vscode.Range(lineNumber, start, lineNumber, end)
         : new vscode.Range(
             document.positionAt(start),
@@ -234,12 +241,12 @@ const tryMatchAndAddDecorationRange = (
 
       const decorationOptions = decorationOptionGroups.get(targetCaptureGroup)!;
 
-      // Mark range to be decorated.
       decoratedRangeGroups.set(decorationRange, [
         targetCaptureGroup,
         decorationOptions,
       ]);
 
+      // Mark range to be decorated.
       if (decorationRanges.has(decorationType)) {
         decorationRanges.get(decorationType)!.push(decorationRange);
       } else {
@@ -247,7 +254,7 @@ const tryMatchAndAddDecorationRange = (
       }
     }
   }
-  return minimumMatchIndex;
+  return maxGroupOffset;
 };
 
 const refreshDecorations = () => {

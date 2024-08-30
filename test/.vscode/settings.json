@@ -37,6 +37,22 @@
       ]
     },
     {
+      "paths": ["44.txt"],
+      "rules": [
+        {
+          "exhaustive": true,
+          "patterns": ["^.{17,24}(.).{4}(\\1)"],
+          "decorations": [
+            {
+              "groups": [1, 2],
+              "color": "#fca311",
+              "textDecoration": "underline"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "paths": ["50.txt"],
       "rules": [
         {
@@ -67,7 +83,6 @@
           "decorations": [
             {
               "groups": ["n_gram", "n_gram_repeat"],
-              "outline": "2px solid",
               "color": "Orange"
             },
             {
