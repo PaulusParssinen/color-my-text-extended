@@ -117,6 +117,8 @@ function updateDecorations(): void {
   const configurations = getConfiguration();
   if (!Array.isArray(configurations) || configurations.length === 0) return;
 
+  const startTime = performance.now();
+
   todoEditors.forEach((editor) => {
     const document = editor.document;
 
@@ -192,6 +194,14 @@ function updateDecorations(): void {
     for (const [decorationType, ranges] of decorationRanges) {
       editor.setDecorations(decorationType, ranges);
     }
+
+    const elapsedTime = performance.now() - startTime;
+
+    logger.trace(
+      `Decorated ${decorationRanges.size} ranges in ${elapsedTime.toFixed(
+        2
+      )}ms.`
+    );
   });
 }
 
@@ -258,7 +268,9 @@ const tryMatchAndAddDecorationRange = (
 };
 
 const refreshDecorations = () => {
-  logger.info("Refreshing document decorations...");
+  logger.debug("Refreshing document decorations...");
+
+  const startTime = performance.now();
 
   // Clear all decorations.
   for (const decorationGroup of allPatternDecorations.values()) {
@@ -301,6 +313,14 @@ const refreshDecorations = () => {
       }
     }
   }
+
+  const elapsedTime = performance.now() - startTime;
+
+  logger.trace(
+    `Refreshed ${allPatternDecorations.size} patterns in ${elapsedTime.toFixed(
+      2
+    )}ms.`
+  );
 };
 
 const createDecorationGroups = (
