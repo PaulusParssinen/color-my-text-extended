@@ -1,38 +1,40 @@
 {
+  "colorMyTextExtended.decorations": {
+    "preamble": {
+      "groups": ["preamble"],
+      "description": "This a preamble",
+      "after": {
+        "contentText": " "
+      }
+    },
+    "prefix": {
+      "groups": "prefix",
+      "after": {
+        "contentText": " "
+      }
+    },
+    "repeats": {
+      "groups": ["doublet", "triplet", "quad"],
+      "color": "white",
+      "textDecoration": ".15em underline"
+    },
+    "4": {
+      "groups": ["_4", "_4_pair"],
+      "color": "orange",
+      "textDecoration": "underline"
+    },
+    "10": {
+      "groups": ["_10", "_10_pair"],
+      "color": "hsl(180 100% 45%)"
+    }
+  },
   "colorMyTextExtended.configurations": [
     {
       "paths": ["*.txt"],
       "rules": [
         {
           "patterns": ["^(?<prefix>.{2})(?<preamble>.{4})"],
-          "decorations": [
-            {
-              "groups": ["preamble"],
-              "description": "This a preamble",
-              "after": {
-                "contentText": " "
-              }
-            },
-            {
-              "groups": "prefix",
-              "after": {
-                "contentText": " "
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "paths": ["**/*.txt"],
-      "rules": [
-        {
-          "patterns": ["no hits"],
-          "decorations": [
-            {
-              "textDecoration": "underline"
-            }
-          ]
+          "decorations": ["preamble", "prefix"]
         }
       ]
     },
@@ -41,14 +43,8 @@
       "rules": [
         {
           "exhaustive": true,
-          "patterns": ["^.{17,24}(.).{4}(\\1)"],
-          "decorations": [
-            {
-              "groups": [1, 2],
-              "color": "#fca311",
-              "textDecoration": "underline"
-            }
-          ]
+          "patterns": ["^.{20,22}(?<_4>.).{4}(?<_4_pair>\\k<_4>)"],
+          "decorations": ["4"]
         }
       ]
     },
@@ -58,17 +54,16 @@
         {
           "exhaustive": true,
           "patterns": [
-            "^.{6,}(?<quad>(\\w)\\2\\2\\2)",
             "^.{6,}(?<triplet>(\\w)\\2\\2)",
-            "^.{6,}(?<doublet>(\\w)\\2)"
+            "^.{6,}(?<quad>(\\w)\\2\\2\\2)"
           ],
-          "decorations": [
-            {
-              "groups": ["quad", "triplet", "doublet"],
-              "color": "orange",
-              "textDecoration": "2px underline"
-            }
-          ]
+          "decorations": "repeats"
+        },
+        {
+          "exhaustive": true,
+          "lines": [3, [5, 5]],
+          "patterns": ["^.{6,}(?<doublet>(\\w)\\2)"],
+          "decorations": "repeats"
         }
       ]
     },
@@ -76,39 +71,24 @@
       "paths": ["52.txt"],
       "rules": [
         {
-          "patterns": [
-            "(?<n_gram>\\w{3}).{0,16}(?<n_gram_repeat>\\k<n_gram>)",
-            "(?<n_gram>\\w{3}).(?<offset_one>.).*(?<n_gram_repeat>\\k<n_gram>).(?<offset_one_2>\\k<offset_one>)"
-          ],
-          "decorations": [
-            {
-              "groups": ["n_gram", "n_gram_repeat"],
-              "color": "Orange"
-            },
-            {
-              "groups": ["offset_one", "offset_one_2"],
-              "color": "#ffffff",
-              "textDecoration": "underline"
-            }
-          ]
+          "exhaustive": true,
+          "patterns": ["^.{20,}(?<_15>.).{15}(?<_15_pair>\\k<_15>)"],
+          "decorations": "15"
         },
         {
-          "patterns": ["^.{20,22}(?<first>.).{4}(?<second>\\k<first>)"],
-          "decorations": [
-            {
-              "groups": ["first", "second"],
-              "color": "red"
-            }
-          ]
+          "exhaustive": true,
+          "patterns": ["^.{20}(?<_2>.).{2}(?<_2_pair>\\k<_2>)"],
+          "decorations": "2"
         },
         {
-          "patterns": ["^.{30,32}(?<first>.).{10}(?<second>\\k<first>)"],
-          "decorations": [
-            {
-              "groups": ["first", "second"],
-              "color": "yellow"
-            }
-          ]
+          "exhaustive": true,
+          "patterns": ["^.{20,22}(?<_4>.).{4}(?<_4_pair>\\k<_4>)"],
+          "decorations": "4"
+        },
+        {
+          "exhaustive": true,
+          "patterns": ["^.{30,32}(?<_10>.).{10}(?<_10_pair>\\k<_10>)"],
+          "decorations": "10"
         }
       ]
     }

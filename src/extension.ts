@@ -1,7 +1,13 @@
 import { minimatch } from "minimatch";
 import * as vscode from "vscode";
 
-import type { Configuration, DecorationOptions, Rule } from "./types";
+import type {
+  Configuration,
+  DecorationGroup,
+  DecorationOptions,
+  DocumentDecorations,
+  Rule,
+} from "./types";
 
 const extensionConfigurationName = "colorMyTextExtended";
 const extensionName = "Color My Text Extended";
@@ -10,28 +16,13 @@ let logger = vscode.window.createOutputChannel(extensionName, {
   log: true,
 });
 
-// TODO: Group the decorations to be isolated per applicable documents.
-
-// Cached regexes
+// pattern -> regex cache
 const regexes = new Map<string, RegExp>();
 
-// decoration capture group -> decoration options
-type DecorationOptionsGroup = Map<string | number, DecorationOptions>;
+// document uri -> decorations
+let documentDecorations = new Map<vscode.Uri, DocumentDecorations>();
 
-// decoration capture group -> decoration options
-type DecorationGroup = Map<string | number, vscode.TextEditorDecorationType>;
-
-// rule pattern -> DecorationOptionsGroup
-let captureGroupDecorations: Map<string, DecorationOptionsGroup> = new Map();
-
-// rule pattern -> DecorationGroup
-let allPatternDecorations: Map<string, DecorationGroup> = new Map();
-
-// decoration range -> matched capture group & decoration options.
-let decoratedRangeGroups = new Map<
-  vscode.Range,
-  [string | number, DecorationOptions]
->();
+let sharedDecorations = new Map<string, DecorationOptions>();
 
 export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
@@ -40,35 +31,36 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.window.onDidChangeVisibleTextEditors(updateDecorations),
 
     vscode.workspace.onDidChangeConfiguration(handleConfigurationChange),
-    vscode.workspace.onDidSaveTextDocument(updateDecorations), // TODO: make decoration updates more targeted per the paths in the configuration.
+    vscode.workspace.onDidSaveTextDocument(updateDecorations),
 
     vscode.languages.registerHoverProvider("plaintext", {
       provideHover: decoratedGroupHoverProvider,
     })
   );
 
-  refreshDecorations();
   updateDecorations();
 
   logger.info(`Extension "${extensionConfigurationName}" activated!`);
 }
 
 const handleConfigurationChange = (event: vscode.ConfigurationChangeEvent) => {
-  if (
-    event.affectsConfiguration(extensionConfigurationName + ".configurations")
-  ) {
-    refreshDecorations();
+  if (event.affectsConfiguration(extensionConfigurationName)) {
     updateDecorations();
   }
 };
 
 const decoratedGroupHoverProvider = (
-  _document: vscode.TextDocument,
+  document: vscode.TextDocument,
   position: vscode.Position,
   token: vscode.CancellationToken
 ): vscode.Hover | undefined => {
-  // TODO: the ranges should be document specific.. lol
-  // Consider using interval tree. This _very_ inefficient.
+  const decoratedRangeGroups = documentDecorations.get(
+    document.uri
+  )?.decoratedRangeGroups;
+
+  if (!decoratedRangeGroups) return;
+
+  // Consider using interval tree. This _very_ inefficient but seems ok for now.
   for (const [range, [group, decoration]] of decoratedRangeGroups) {
     if (token.isCancellationRequested) return;
     if (!range.contains(position)) continue;
@@ -85,39 +77,25 @@ const decoratedGroupHoverProvider = (
   }
 };
 
-const createRegex = (
-  pattern: string | RegExp,
-  multiline: boolean,
-  matchCase?: boolean
-) => {
-  let flags = "dg";
-  if (multiline) flags += "m";
-  if (!matchCase) flags += "i";
-
-  try {
-    return new RegExp(pattern, flags);
-  } catch (e) {
-    logger.error(`Failed to create regex for pattern "${pattern}".`, e);
-  }
-};
-
-const getConfiguration = () => {
-  return vscode.workspace
+const getConfiguration = () =>
+  vscode.workspace
     .getConfiguration(extensionConfigurationName)
     .get<Configuration[]>("configurations");
-};
 
-function updateDecorations(): void {
-  if (allPatternDecorations.size === 0) return;
+const getSharedDecorations = () =>
+  vscode.workspace
+    .getConfiguration(extensionConfigurationName)
+    .get<object>("decorations");
 
+const forEachVisibleApplicableEditor = (
+  callback: (editor: vscode.TextEditor, rules: Rule[]) => void
+) => {
   const todoEditors = vscode.window.visibleTextEditors.slice();
 
   if (todoEditors.length === 0) return;
 
   const configurations = getConfiguration();
   if (!Array.isArray(configurations) || configurations.length === 0) return;
-
-  const startTime = performance.now();
 
   todoEditors.forEach((editor) => {
     const document = editor.document;
@@ -129,6 +107,23 @@ function updateDecorations(): void {
 
     if (applicableRules.length === 0) return;
 
+    callback(editor, applicableRules);
+  });
+};
+
+const updateDecorations = () => {
+  refreshDecorationConfig();
+
+  if (documentDecorations.size === 0) return;
+
+  const startTime = performance.now();
+
+  forEachVisibleApplicableEditor((editor, applicableRules) => {
+    const document = editor.document;
+
+    const { allPatternDecorations, decoratedRangeGroups } =
+      documentDecorations.get(document.uri)!;
+
     // Apply decorations.
     const decorationRanges: Map<
       vscode.TextEditorDecorationType,
@@ -138,52 +133,91 @@ function updateDecorations(): void {
     // Clear decoration ranges used for the hover provider;
     decoratedRangeGroups.clear();
 
-    const documentText = document.getText();
-
     for (const rule of applicableRules) {
       const patterns = [rule.patterns ?? []].flat();
+      const exhaustive = rule.exhaustive ?? false;
 
       for (const pattern of patterns) {
         const decorationGroups = allPatternDecorations.get(pattern);
-        const decorationOptionGroups = captureGroupDecorations.get(pattern);
         const patternRegex = regexes.get(pattern);
 
-        if (!patternRegex || !decorationGroups || !decorationOptionGroups) {
+        if (!patternRegex || !decorationGroups) {
           continue;
         }
 
-        if (!rule.exhaustive) {
-          tryMatchAndAddDecorationRange(
-            document,
-            documentText,
-            patternRegex,
-            decorationGroups,
-            decorationOptionGroups,
-            decoratedRangeGroups,
-            decorationRanges
-          );
-        } else {
-          for (
-            let lineNumber = 0;
-            lineNumber < document.lineCount;
-            lineNumber++
-          ) {
-            const lineText = document.lineAt(lineNumber).text;
+        if (rule.lines) {
+          for (const line of rule.lines) {
+            if (Array.isArray(line)) {
+              const startLine = Math.max(line[0] - 1, 0);
+              const endLine = Math.min(line[1], document.lineCount);
 
-            // For the exhaustive search, we track the last capture group offset.
-            let unexamined = lineText.length;
-            do {
-              unexamined = tryMatchAndAddDecorationRange(
+              for (
+                let lineNumber = startLine;
+                lineNumber < endLine;
+                lineNumber++
+              ) {
+                decorateLine(
+                  document,
+                  lineNumber,
+                  patternRegex,
+                  decorationGroups,
+                  decoratedRangeGroups,
+                  decorationRanges,
+                  exhaustive
+                );
+              }
+            } else if (typeof line === "object") {
+              const linePatternRegex = createRegex(
+                line.pattern,
+                rule.matchCase
+              );
+
+              if (!linePatternRegex) continue;
+
+              for (
+                let lineIndex = 0;
+                lineIndex < document.lineCount;
+                lineIndex++
+              ) {
+                const lineText = document.lineAt(lineIndex).text;
+
+                if (linePatternRegex.test(lineText)) {
+                  decorateLine(
+                    document,
+                    lineIndex,
+                    patternRegex,
+                    decorationGroups,
+                    decoratedRangeGroups,
+                    decorationRanges,
+                    exhaustive
+                  );
+                }
+              }
+            } else {
+              // single line
+              decorateLine(
                 document,
-                lineText.slice(0, unexamined),
+                line - 1,
                 patternRegex,
                 decorationGroups,
-                decorationOptionGroups,
                 decoratedRangeGroups,
                 decorationRanges,
-                lineNumber
+                exhaustive
               );
-            } while (unexamined > 0);
+            }
+          }
+          continue;
+        } else {
+          for (let lineIndex = 0; lineIndex < document.lineCount; lineIndex++) {
+            decorateLine(
+              document,
+              lineIndex,
+              patternRegex,
+              decorationGroups,
+              decoratedRangeGroups,
+              decorationRanges,
+              exhaustive
+            );
           }
         }
       }
@@ -203,22 +237,47 @@ function updateDecorations(): void {
       )}ms.`
     );
   });
-}
+};
 
-const tryMatchAndAddDecorationRange = (
+const decorateLine = (
   document: vscode.TextDocument,
-  input: string,
-  pattern: RegExp,
-  decorationGroups: DecorationGroup,
-  decorationOptionGroups: DecorationOptionsGroup,
+  lineIndex: number,
+  patternRegex: RegExp,
+  decorationGroups: Map<
+    string | number,
+    [DecorationOptions, vscode.TextEditorDecorationType]
+  >,
   decoratedRangeGroups: Map<vscode.Range, [string | number, DecorationOptions]>,
   decorationRanges: Map<vscode.TextEditorDecorationType, vscode.Range[]>,
-  lineNumber?: number
-): number => {
-  // We use the fact whether the lineNumber is supplied to the function
-  // to determine if we are doing exhaustive search.
-  const isExhaustive = lineNumber !== undefined;
+  exhaustive: boolean
+) => {
+  const lineText = document.lineAt(lineIndex).text;
 
+  // For the exhaustive search, we track the last capture group offset.
+  let unexamined = lineText.length;
+  do {
+    unexamined = tryMatchAndAddDecorationRange(
+      lineText.slice(0, unexamined),
+      patternRegex,
+      decorationGroups,
+      decoratedRangeGroups,
+      decorationRanges,
+      lineIndex
+    );
+  } while (exhaustive && unexamined > 0);
+};
+
+const tryMatchAndAddDecorationRange = (
+  input: string,
+  pattern: RegExp,
+  decorationGroups: Map<
+    string | number,
+    [DecorationOptions, vscode.TextEditorDecorationType]
+  >,
+  decoratedRangeGroups: Map<vscode.Range, [string | number, DecorationOptions]>,
+  decorationRanges: Map<vscode.TextEditorDecorationType, vscode.Range[]>,
+  lineNumber: number
+): number => {
   // For the exhaustive search, we will track the offset of the last matched capture group.
   // We slice the input text to the last matched capture group to avoid matching the same text again.
   let maxGroupOffset = -1; // sentinel value for no matches.
@@ -228,7 +287,10 @@ const tryMatchAndAddDecorationRange = (
       continue;
     }
 
-    for (const [targetCaptureGroup, decorationType] of decorationGroups) {
+    for (const [
+      targetCaptureGroup,
+      [decorationOptions, decorationType],
+    ] of decorationGroups) {
       const range =
         typeof targetCaptureGroup === "number"
           ? match.indices[targetCaptureGroup]
@@ -242,14 +304,12 @@ const tryMatchAndAddDecorationRange = (
       // Track the maximum starting offset of the capture groups.
       maxGroupOffset = Math.max(maxGroupOffset, start);
 
-      const decorationRange = isExhaustive
-        ? new vscode.Range(lineNumber, start, lineNumber, end)
-        : new vscode.Range(
-            document.positionAt(start),
-            document.positionAt(end)
-          );
-
-      const decorationOptions = decorationOptionGroups.get(targetCaptureGroup)!;
+      const decorationRange = new vscode.Range(
+        lineNumber,
+        start,
+        lineNumber,
+        end
+      );
 
       decoratedRangeGroups.set(decorationRange, [
         targetCaptureGroup,
@@ -267,89 +327,111 @@ const tryMatchAndAddDecorationRange = (
   return maxGroupOffset;
 };
 
-const refreshDecorations = () => {
+const refreshDecorationConfig = () => {
   logger.debug("Refreshing document decorations...");
 
   const startTime = performance.now();
 
-  // Clear all decorations.
-  for (const decorationGroup of allPatternDecorations.values()) {
-    for (const decorationType of decorationGroup.values()) {
-      decorationType.dispose();
+  sharedDecorations = new Map<string, DecorationOptions>(
+    Object.entries(getSharedDecorations() ?? {})
+  );
+
+  forEachVisibleApplicableEditor((editor, applicableRules) => {
+    const document = editor.document;
+
+    // Clear all decorations.
+    let documentDecoration = documentDecorations.get(document.uri);
+    if (!documentDecoration) {
+      documentDecoration = {
+        allPatternDecorations: new Map(),
+        decoratedRangeGroups: new Map(),
+      };
+      documentDecorations.set(document.uri, documentDecoration);
     }
-  }
 
-  // Refresh decoration-type map.
-  const configurations = getConfiguration();
-  if (!Array.isArray(configurations)) return;
+    for (const decorationType of documentDecoration.allPatternDecorations?.values()) {
+      for (const [, decoration] of decorationType.values()) {
+        decoration.dispose();
+      }
+    }
 
-  allPatternDecorations = new Map();
+    // Refresh decoration-type map.
+    documentDecoration.allPatternDecorations = new Map();
 
-  for (const configuration of configurations) {
-    if (!Array.isArray(configuration.rules)) return;
-
-    for (const rule of configuration.rules) {
+    for (const rule of applicableRules) {
       if (!rule.patterns || rule.decorations === undefined) return;
 
       const patterns = [rule.patterns].flat();
-      const decorations = [rule.decorations].flat();
+
+      const decorations = [rule.decorations]
+        .flat()
+        .map((decoration) =>
+          typeof decoration == "string"
+            ? sharedDecorations.get(decoration)
+            : decoration
+        )
+        .filter(Boolean) as DecorationOptions[];
 
       for (const pattern of patterns) {
-        if (typeof pattern !== "string") return;
-
-        if (!regexes.has(pattern)) {
-          regexes.set(
-            pattern,
-            createRegex(pattern, !rule.exhaustive ?? true, rule.matchCase)!
-          );
-        }
+        createRegex(pattern, rule.matchCase);
 
         createDecorationGroups(
           pattern,
           decorations,
-          allPatternDecorations,
-          captureGroupDecorations
+          documentDecoration.allPatternDecorations
         );
       }
     }
+
+    const elapsedTime = performance.now() - startTime;
+
+    logger.trace(`Refreshed all patterns in ${elapsedTime.toFixed(2)}ms.`);
+  });
+};
+
+const createRegex = (pattern: string, matchCase?: boolean) => {
+  let regex = regexes.get(pattern);
+  if (regex) {
+    return regex;
   }
 
-  const elapsedTime = performance.now() - startTime;
+  let flags = "dg";
+  if (!matchCase) flags += "i";
 
-  logger.trace(
-    `Refreshed ${allPatternDecorations.size} patterns in ${elapsedTime.toFixed(
-      2
-    )}ms.`
-  );
+  try {
+    regex = new RegExp(pattern, flags);
+    regexes.set(pattern, regex);
+    return regex;
+  } catch (e) {
+    logger.error(`Failed to create regex for pattern "${pattern}".`, e);
+    return null;
+  }
 };
 
 const createDecorationGroups = (
   pattern: string,
   decorations: readonly DecorationOptions[],
-  patternDecorations: Map<string, DecorationGroup>,
-  captureGroupDecorations: Map<string, DecorationOptionsGroup>
+  patternDecorations: Map<
+    // pattern
+    string,
+    DecorationGroup
+  >
 ) => {
   if (!patternDecorations.has(pattern)) {
     patternDecorations.set(pattern, new Map());
   }
 
-  if (!captureGroupDecorations.has(pattern)) {
-    captureGroupDecorations.set(pattern, new Map());
-  }
-
   const patternDecoration = patternDecorations.get(pattern);
-  const captureGroupDecoration = captureGroupDecorations.get(pattern);
 
   for (const decoration of decorations) {
     // if no groups are specified, default to capture group 0, i.e. the entire match.
-    const decorationGroups = [decoration.groups ? decoration.groups : 0].flat();
+    const groups = [decoration.groups ? decoration.groups : 0].flat();
 
     const decorationType =
       vscode.window.createTextEditorDecorationType(decoration);
 
-    for (const group of decorationGroups) {
-      patternDecoration!.set(group, decorationType);
-      captureGroupDecoration!.set(group, decoration);
+    for (const group of groups) {
+      patternDecoration!.set(group, [decoration, decorationType]);
     }
   }
 };
